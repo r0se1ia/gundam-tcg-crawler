@@ -267,10 +267,11 @@
       btn.textContent = '爬取中...';
       showCrawlResult('正在爬取，請稍候...', 'warn');
 
+      var body = 'setCode=' + encodeURIComponent(setCode) + '&startNo=' + startNo + '&endNo=' + endNo;
       fetch(gasUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setCode: setCode, startNo: startNo, endNo: endNo })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
       })
       .then(function(res) { return res.json(); })
       .then(function(data) {
