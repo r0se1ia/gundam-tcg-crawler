@@ -218,6 +218,12 @@
         <button type="button" class="preset-btn" data-set="GD03" data-end="120">GD03 全彈</button>
         <button type="button" class="preset-btn" data-set="GD01" data-end="10">GD01 前 10 張</button>
       </div>
+      <form id="crawlForm" method="POST" target="_blank" style="display:none;">
+        <input type="hidden" name="setCode" id="formSetCode">
+        <input type="hidden" name="startNo" id="formStartNo">
+        <input type="hidden" name="endNo" id="formEndNo">
+        <input type="hidden" name="returnHtml" value="true">
+      </form>
       <button type="button" class="btn btn-primary" id="crawlBtn">開始爬取</button>
     </div>
   </div>
@@ -239,43 +245,33 @@
       }
     }
 
-    function buildCrawlUrl() {
-      var base = getGasUrl();
-      if (!base) return null;
-      const setCode = document.getElementById('setCode').value.trim() || 'GD01';
-      const startNo = parseInt(document.getElementById('startNo').value, 10) || 1;
-      const endNo = parseInt(document.getElementById('endNo').value, 10) || 120;
-      const backUrl = encodeURIComponent(window.location.href);
-      const params = new URLSearchParams({
-        action: 'crawl',
-        setCode: setCode,
-        startNo: String(startNo),
-        endNo: String(endNo),
-        backUrl: backUrl
-      });
-      const sep = base.includes('?') ? '&' : '?';
-      return base + sep + params.toString();
-    }
-
     document.getElementById('crawlBtn').addEventListener('click', function() {
-      const url = buildCrawlUrl();
-      if (!url) {
+      var gasUrl = getGasUrl();
+      if (!gasUrl) {
         alert('請在 config.js 中設定 GAS_URL');
         return;
       }
-      const startNo = parseInt(document.getElementById('startNo').value, 10) || 1;
-      const endNo = parseInt(document.getElementById('endNo').value, 10) || 120;
+      var setCode = document.getElementById('setCode').value.trim() || 'GD01';
+      var startNo = parseInt(document.getElementById('startNo').value, 10) || 1;
+      var endNo = parseInt(document.getElementById('endNo').value, 10) || 120;
       if (startNo > endNo) {
         alert('起始卡號不可大於結束卡號');
         return;
       }
-      const count = endNo - startNo + 1;
+      var count = endNo - startNo + 1;
       if (count > 50) {
         if (!confirm('一次爬取超過 50 張可能逾時，是否繼續？')) return;
       }
       this.disabled = true;
-      this.textContent = '跳轉中...';
-      window.location.href = url;
+      this.textContent = '爬取中...';
+      var form = document.getElementById('crawlForm');
+      form.action = gasUrl;
+      document.getElementById('formSetCode').value = setCode;
+      document.getElementById('formStartNo').value = String(startNo);
+      document.getElementById('formEndNo').value = String(endNo);
+      form.submit();
+      this.textContent = '開始爬取';
+      this.disabled = false;
     });
 
     document.querySelectorAll('.preset-btn').forEach(function(btn) {
