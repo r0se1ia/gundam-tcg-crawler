@@ -218,12 +218,7 @@
         <button type="button" class="preset-btn" data-set="GD03" data-end="120">GD03 全彈</button>
         <button type="button" class="preset-btn" data-set="GD01" data-end="10">GD01 前 10 張</button>
       </div>
-      <form id="crawlForm" method="POST" target="_blank" style="display:none;">
-        <input type="hidden" name="setCode" id="formSetCode">
-        <input type="hidden" name="startNo" id="formStartNo">
-        <input type="hidden" name="endNo" id="formEndNo">
-        <input type="hidden" name="returnHtml" value="true">
-      </form>
+      <div id="crawlResult"></div>
       <button type="button" class="btn btn-primary" id="crawlBtn">開始爬取</button>
     </div>
   </div>
@@ -245,6 +240,11 @@
       }
     }
 
+    function showCrawlResult(html, statusClass) {
+      var el = document.getElementById('crawlResult');
+      el.innerHTML = '<div class="status ' + (statusClass || 'ok') + '">' + html + '</div>';
+    }
+
     document.getElementById('crawlBtn').addEventListener('click', function() {
       var gasUrl = getGasUrl();
       if (!gasUrl) {
@@ -262,16 +262,36 @@
       if (count > 50) {
         if (!confirm('一次爬取超過 50 張可能逾時，是否繼續？')) return;
       }
-      this.disabled = true;
-      this.textContent = '爬取中...';
-      var form = document.getElementById('crawlForm');
-      form.action = gasUrl;
-      document.getElementById('formSetCode').value = setCode;
-      document.getElementById('formStartNo').value = String(startNo);
-      document.getElementById('formEndNo').value = String(endNo);
-      form.submit();
-      this.textContent = '開始爬取';
-      this.disabled = false;
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = '爬取中...';
+      showCrawlResult('正在爬取，請稍候...', 'warn');
+
+      fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setCode: setCode, startNo: startNo, endNo: endNo })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.status === 'ok') {
+          var msg = '完成。成功寫入 ' + data.insertedCount + ' 張';
+          if (data.failed && data.failed.length > 0) {
+            msg += '，失敗 ' + data.failed.length + ' 張：' + data.failed.join(', ');
+          }
+          msg += '。';
+          showCrawlResult(msg, 'ok');
+        } else {
+          showCrawlResult('錯誤：' + (data.message || '未知錯誤'), 'error');
+        }
+      })
+      .catch(function(err) {
+        showCrawlResult('請求失敗：' + (err.message || '請檢查網路或 CORS 設定'), 'error');
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = '開始爬取';
+      });
     });
 
     document.querySelectorAll('.preset-btn').forEach(function(btn) {
